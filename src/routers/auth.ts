@@ -1,31 +1,59 @@
-import { CreateUser } from "#/@types/user";
+import fileParser from "#/middleware/fileParser";
+import {
+  create,
+  generateForgetPasswordLink,
+  grantValid,
+  sendReVerificationToken,
+  signIn,
+  updatePassword,
+  updateProfile,
+  verifyEmail,
+} from "#/controllers/user";
+import { isValidPassResetToken, mustAuth } from "#/middleware/auth";
 import { validate } from "#/middleware/validator";
-import User from "#/models/user";
-import { CreateUserSchema } from "#/utils/validationSchema";
+import {
+  CreateUserSchema,
+  SignInValidationSchema,
+  TokenAndIdValidation,
+  UpdatePasswordSchema,
+} from "#/utils/validationSchema";
 import { Router } from "express";
 
 const router = Router();
 
+router.post("/create", validate(CreateUserSchema), create);
+router.post("/verify-email", validate(TokenAndIdValidation), verifyEmail);
+router.post("/re-verify-email", sendReVerificationToken);
+router.post("/forget-password", generateForgetPasswordLink);
 router.post(
-  "/create",
-  validate(CreateUserSchema),
-  (req: CreateUser, res, next) => {
-    const { name, email, password } = req.body;
-    CreateUserSchema.validate({ email, password, name }).catch((error) => {
-      console.log(error);
-    });
-    if (!name.trim()) return res.json({ error: "Name is missing!" });
-    if (name.length < 3) return res.json({ error: "Invalid name!" });
-    next();
-  },
-  async (req: CreateUser, res) => {
-    const { name, email, password } = req.body;
-    //   const newUser = new User({ name, email, password });
-    //   newUser.save();
-
-    const user = await User.create({ name, email, password });
-    res.json({ user });
-  }
+  "/verify-pass-reset-token",
+  validate(TokenAndIdValidation),
+  isValidPassResetToken,
+  grantValid
 );
+router.post(
+  "/update-password",
+  validate(UpdatePasswordSchema),
+  isValidPassResetToken,
+  updatePassword
+);
+router.post("/sign-in", validate(SignInValidationSchema), signIn);
 
+router.get("/is-auth", mustAuth, (req, res) => {
+  res.json({
+    profile: req.user,
+  });
+});
+router.get("/public", (req, res) => {
+  res.json({
+    message: "You are in public route",
+  });
+});
+router.get("/private", mustAuth, (req, res) => {
+  res.json({
+    message: "You are in the private route",
+  });
+});
+
+router.post("/update-profile", mustAuth, fileParser, updateProfile);
 export default router;
