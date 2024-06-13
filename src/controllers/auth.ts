@@ -1,7 +1,7 @@
 import { CreateUser, VerifyEmailRequest } from "#/@types/user";
 import User from "#/models/user";
 import jwt from "jsonwebtoken";
-import { generateToken } from "#/utils/helper";
+import { formatProfile, generateToken } from "#/utils/helper";
 import { RequestHandler } from "express";
 import {
   sendForgetPasswordLink,
@@ -16,7 +16,7 @@ import { JWT_SECRET, PASSWORD_RESET_LINK } from "#/utils/variables";
 import cloudinary from "#/cloud";
 import formidable from "formidable";
 import { RequestWithFiles } from "#/middleware/fileParser";
-import { log } from "console";
+
 
 export const create: RequestHandler = async (req: CreateUser, res) => {
   const { name, email, password } = req.body;
@@ -231,6 +231,9 @@ export const updateProfile: RequestHandler = async (
 
   if (avatar) {
     // if there is already an avatar file, we want to remove that
+    if (user.avatar?.publicId) {
+      cloudinary.uploader.destroy(user.avatar?.publicId)
+    }
 
     // upload new avatar file
     const { secure_url, public_id } = await cloudinary.uploader.upload(
@@ -248,5 +251,26 @@ export const updateProfile: RequestHandler = async (
 
   await user.save();
 
-  res.json({ avatar: user.avatar });
+  res.json({ profile: formatProfile(user)});
 };
+
+export const sendProfile: RequestHandler = async (req, res) => {
+res.json({profile: req.user})
+};
+
+export const logOut: RequestHandler = async (req, res) => {
+const {fromAll} = req.query
+
+const token = req.token
+const user = await User.findById(req.user.id) 
+if (!user) throw new Error("something went wrong, user not found!");
+
+// checkout from logout from all
+if (fromAll === "yes") user.token = []
+else user.token = user.token.filter((t)=> t !== token )
+
+await user.save()
+
+res.json({success: true})
+
+}
