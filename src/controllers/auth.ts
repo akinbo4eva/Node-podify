@@ -6,7 +6,7 @@ import { RequestHandler } from "express";
 import {
   sendForgetPasswordLink,
   sendPassResetSuccessEmail,
-  sendVerificationMAil,
+  sendVerificationMail,
 } from "#/utils/mail";
 import EmailVerificationToken from "#/models/emailVerificationToken";
 import PasswordResetToken from "#/models/passwordResetToken";
@@ -16,7 +16,6 @@ import { JWT_SECRET, PASSWORD_RESET_LINK } from "#/utils/variables";
 import cloudinary from "#/cloud";
 import formidable from "formidable";
 import { RequestWithFiles } from "#/middleware/fileParser";
-
 
 export const create: RequestHandler = async (req: CreateUser, res) => {
   const { name, email, password } = req.body;
@@ -38,7 +37,7 @@ export const create: RequestHandler = async (req: CreateUser, res) => {
     owner: user._id,
     token,
   });
-  sendVerificationMAil(token, { name, email, userId: user._id.toString() });
+  sendVerificationMail(token, { name, email, userId: user._id.toString() });
 
   res.status(201).json({ user: { id: user._id, name, email } });
 };
@@ -102,7 +101,7 @@ export const sendReVerificationToken: RequestHandler = async (req, res) => {
 
   // Send the verification token to user.
   // This request could aswell be invalid, hence the need to run the checks above
-  sendVerificationMAil(token, {
+  sendVerificationMail(token, {
     name: user?.name,
     email: user?.email,
     userId: user?._id.toString(),
@@ -179,6 +178,7 @@ export const updatePassword: RequestHandler = async (req, res) => {
 
   res.json({ message: "Password reset succesfully" });
 };
+
 export const signIn: RequestHandler = async (req, res) => {
   const { password, email } = req.body;
 
@@ -193,7 +193,7 @@ export const signIn: RequestHandler = async (req, res) => {
 
   // if matched generate token
   const token = jwt.sign({ userId: user._id }, JWT_SECRET);
-  user.token.push(token);
+  user.tokens.push(token);
 
   await user.save();
 
@@ -232,7 +232,7 @@ export const updateProfile: RequestHandler = async (
   if (avatar) {
     // if there is already an avatar file, we want to remove that
     if (user.avatar?.publicId) {
-      cloudinary.uploader.destroy(user.avatar?.publicId)
+      await cloudinary.uploader.destroy(user.avatar?.publicId);
     }
 
     // upload new avatar file
@@ -251,26 +251,25 @@ export const updateProfile: RequestHandler = async (
 
   await user.save();
 
-  res.json({ profile: formatProfile(user)});
+  res.json({ profile: formatProfile(user) });
 };
 
 export const sendProfile: RequestHandler = async (req, res) => {
-res.json({profile: req.user})
+  res.json({ profile: req.user });
 };
 
 export const logOut: RequestHandler = async (req, res) => {
-const {fromAll} = req.query
+  const { fromAll } = req.query;
 
-const token = req.token
-const user = await User.findById(req.user.id) 
-if (!user) throw new Error("something went wrong, user not found!");
+  const token = req.token;
+  const user = await User.findById(req.user.id);
+  if (!user) throw new Error("something went wrong, user not found!");
 
-// checkout from logout from all
-if (fromAll === "yes") user.token = []
-else user.token = user.token.filter((t)=> t !== token )
+  // checkout from logout from all
+  if (fromAll === "yes") user.tokens = [];
+  else user.tokens = user.tokens.filter((t) => t !== token);
 
-await user.save()
+  await user.save();
 
-res.json({success: true})
-
-}
+  res.json({ success: true });
+};

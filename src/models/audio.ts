@@ -1,11 +1,11 @@
 import { categories, categoriesTypes } from "#/utils/audio_category";
 import { Model, ObjectId, Schema, model, models } from "mongoose";
 
-export interface AudioDocument {
+export interface AudioDocument<T = ObjectId> {
+  _id: ObjectId;
   title: string;
   about: string;
-  owner: ObjectId;
-
+  owner: T;
   file: {
     url: string;
     publicId: string;
@@ -16,8 +16,9 @@ export interface AudioDocument {
     publicId: string;
   };
 
-  likes: ObjectId;
+  likes: ObjectId[];
   category: categoriesTypes;
+  createdAt: Date;
 }
 
 const AudioSchema = new Schema<AudioDocument>(
@@ -33,7 +34,7 @@ const AudioSchema = new Schema<AudioDocument>(
     owner: {
       type: Schema.Types.ObjectId,
       // the below user is coming from "user.ts => model name"
-      required: "User",
+      ref: "User",
     },
     file: {
       type: Object,
@@ -50,7 +51,7 @@ const AudioSchema = new Schema<AudioDocument>(
       {
         type: Schema.Types.ObjectId,
         // the below user is coming from "user.ts => model name"
-        required: "User",
+        ref: "User",
       },
     ],
     category: {
@@ -66,6 +67,5 @@ const Audio = models.Audio || model("Audio", AudioSchema);
 export default Audio as Model<AudioDocument>;
 
 // or simply use below for export instead of the two lines above
-
 
 // export default model("Audio", AudioSchema) as Model<AudioDocument>;

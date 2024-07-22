@@ -1,4 +1,4 @@
-import { Model, model, ObjectId, Schema, models } from "mongoose";
+import { Model, model, models, ObjectId, Schema } from "mongoose";
 
 interface FavoriteDocument {
   owner: ObjectId;
