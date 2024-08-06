@@ -1,6 +1,6 @@
-import { ObjectId, Schema, Model, model, models } from "mongoose";
+import { Model, model, models, ObjectId, Schema } from "mongoose";
 
-type historyType = { audio: ObjectId; progress: number; date: Date };
+export type historyType = { audio: ObjectId; progress: number; date: Date };
 
 interface HistoryDocument {
   owner: ObjectId;
@@ -8,16 +8,15 @@ interface HistoryDocument {
   all: historyType[];
 }
 
-const historySchema =  new Schema<HistoryDocument>(
+const historySchema = new Schema<HistoryDocument>(
   {
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      require: true,
+      required: true,
     },
     last: {
       audio: { type: Schema.Types.ObjectId, ref: "Audio" },
-      require: true,
       progress: Number,
       date: {
         type: Date,
@@ -27,7 +26,6 @@ const historySchema =  new Schema<HistoryDocument>(
     all: [
       {
         audio: { type: Schema.Types.ObjectId, ref: "Audio" },
-        require: true,
         progress: Number,
         date: {
           type: Date,
