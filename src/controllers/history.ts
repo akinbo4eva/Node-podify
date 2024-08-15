@@ -16,4 +16,29 @@ export const updateHistory: RequestHandler = async (req, res) => {
     });
     return res.json({ success: true });
   }
+
+  const today = new Date()
+  const startOfDay = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  )
+  const endOfDay = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate() + 1,
+  )
+
+  const histories = await History.aggregate([
+    { $match: { owner: req.user.id } },
+    {$unwind: "$all"},
+    {$match: {
+      "all.date": {
+        $gte: startOfDay ,
+        $lt: endOfDay 
+      }
+    }}
+  ]);
+
+  res.json(histories);
 };
